@@ -243,6 +243,11 @@ void loadGeometry()
     Program diffuse_em = context->createProgramFromPTXString( ptx, "diffuseEmitter" );
     diffuse_light->setClosestHitProgram( 0, diffuse_em );
 
+	Material diffuse_floor = context->createMaterial();
+	Program diffuse_fl = context->createProgramFromPTXString(ptx, "floor_closest_hit_radiance");
+	diffuse_floor->setClosestHitProgram(0, diffuse_fl);
+	diffuse_floor->setAnyHitProgram(1, diffuse_ah);
+
     // Set up parallelogram programs
     ptx = sutil::getPtxString( SAMPLE_NAME, "parallelogram.cu" );
     pgram_bounding_box = context->createProgramFromPTXString( ptx, "bounds" );
@@ -284,7 +289,8 @@ void loadGeometry()
     gis.push_back( createParallelogram( make_float3( 556.0f, 0.0f, 0.0f ),
                                         make_float3( 0.0f, 0.0f, 559.2f ),
                                         make_float3( 0.0f, 548.8f, 0.0f ) ) );
-    setMaterial(gis.back(), diffuse, "diffuse_color", red);
+	//setMaterial(gis.back(), diffuse, "diffuse_color", red);
+	setMaterial(gis.back(), diffuse_floor, "diffuse_color", white);
 
     // Short block
     gis.push_back( createParallelogram( make_float3( 130.0f, 165.0f, 65.0f),

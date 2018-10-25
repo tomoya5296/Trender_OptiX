@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (c) 2018 NVIDIA CORPORATION. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -92,7 +92,7 @@ RT_PROGRAM void pathtrace_camera()
     float3 result = make_float3(0.0f);
 
     unsigned int seed = tea<16>(screen.x*launch_index.y+launch_index.x, frame_number);
-    do 
+    do
     {
         //
         // Sample pixel using jittering
@@ -127,7 +127,7 @@ RT_PROGRAM void pathtrace_camera()
                 break;
             }
 
-            // Russian roulette termination 
+            // Russian roulette termination
             if(prd.depth >= rr_begin_depth)
             {
                 float pcont = fmaxf(prd.attenuation);
@@ -305,3 +305,34 @@ RT_PROGRAM void miss()
 }
 
 
+//Phong surface shading with shadows and reflections
+rtDeclareVariable(float, importance_cutoff, , );
+rtDeclareVariable(int, max_depth, , );
+
+RT_PROGRAM void floor_closest_hit_radiance(){
+
+    float3 world_geo_normal   = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, geometric_normal ) );
+    float3 world_shade_normal = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, shading_normal ) );
+    float3 ffnormal     = faceforward( world_shade_normal, -ray.direction, world_geo_normal );
+    float3 hitpoint = ray.origin + t_hit * ray.direction;
+    float3 R = reflect(ray.direction, ffnormal );
+
+    current_prd.origin = hitpoint;
+    current_prd.direction = R;
+    current_prd.countEmitted = false;
+    // PerRayData_pathtrace refl_prd;
+    // refl_prd.attenuation = make_float3(1.f);
+    // refl_prd.countEmitted = true;
+    // refl_prd.done = false;
+    // refl_prd.seed = seed;
+    // refl_prd.depth = current_prd.depth + 1;
+
+    // optix::Ray refl_ray( hitpoint, R, pathtrace_ray_type, scene_epsilon);
+    // rtTrace(top_object, refl_ray, refl_prd);
+    //
+    // current_prd.radiance = refl_prd.radiance;
+    // current_prd.done = true;
+
+    // current_prd.radiance = bad_color;
+    // current_prd.done = true;
+}
