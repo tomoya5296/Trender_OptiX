@@ -243,10 +243,28 @@ void loadGeometry()
     Program diffuse_em = context->createProgramFromPTXString( ptx, "diffuseEmitter" );
     diffuse_light->setClosestHitProgram( 0, diffuse_em );
 
-	Material diffuse_floor = context->createMaterial();
-	Program diffuse_fl = context->createProgramFromPTXString(ptx, "floor_closest_hit_radiance");
-	diffuse_floor->setClosestHitProgram(0, diffuse_fl);
-	diffuse_floor->setAnyHitProgram(1, diffuse_ah);
+	Material specular = context->createMaterial();
+	Program specular_ch = context->createProgramFromPTXString(ptx, "specular_closest_hit_radiance");
+	specular->setClosestHitProgram(0, specular_ch);
+	specular->setAnyHitProgram(1, diffuse_ah);
+
+	Material glass = context->createMaterial();
+	Program glass_ch = context->createProgramFromPTXString(ptx, "glass_closest_hit_radiance");
+	glass->setClosestHitProgram(0, glass_ch);
+	glass->setAnyHitProgram(1, diffuse_ah);
+	//glass["importance_cutoff"]->setFloat(1e-2f);
+	glass["cutoff_color"]->setFloat(0.34f, 0.55f, 0.85f);
+	glass["fresnel_exponent"]->setFloat(3.0f);
+	glass["fresnel_minimum"]->setFloat(0.1f);
+	glass["fresnel_maximum"]->setFloat(1.0f);
+	glass["refraction_index"]->setFloat(1.4f);
+	glass["refraction_color"]->setFloat(1.0f, 1.0f, 1.0f);
+	glass["reflection_color"]->setFloat(1.0f, 1.0f, 1.0f);
+	glass["refraction_maxdepth"]->setInt(100);
+	glass["reflection_maxdepth"]->setInt(100);
+	float3 extinction = make_float3(.80f, .89f, .75f);
+	glass["extinction_constant"]->setFloat(log(extinction.x), log(extinction.y), log(extinction.z));
+	//glass["shadow_attenuation"]->setFloat(0.4f, 0.7f, 0.4f);
 
     // Set up parallelogram programs
     ptx = sutil::getPtxString( SAMPLE_NAME, "parallelogram.cu" );
@@ -289,30 +307,35 @@ void loadGeometry()
     gis.push_back( createParallelogram( make_float3( 556.0f, 0.0f, 0.0f ),
                                         make_float3( 0.0f, 0.0f, 559.2f ),
                                         make_float3( 0.0f, 548.8f, 0.0f ) ) );
-	//setMaterial(gis.back(), diffuse, "diffuse_color", red);
-	setMaterial(gis.back(), diffuse_floor, "diffuse_color", white);
+	setMaterial(gis.back(), diffuse, "diffuse_color", red);
 
     // Short block
     gis.push_back( createParallelogram( make_float3( 130.0f, 165.0f, 65.0f),
                                         make_float3( -48.0f, 0.0f, 160.0f),
                                         make_float3( 160.0f, 0.0f, 49.0f) ) );
-    setMaterial(gis.back(), diffuse, "diffuse_color", white);
+	//setMaterial(gis.back(), diffuse, "diffuse_color", white);
+	setMaterial(gis.back(), glass, "diffuse_color", white);
     gis.push_back( createParallelogram( make_float3( 290.0f, 0.0f, 114.0f),
                                         make_float3( 0.0f, 165.0f, 0.0f),
                                         make_float3( -50.0f, 0.0f, 158.0f) ) );
-    setMaterial(gis.back(), diffuse, "diffuse_color", white);
+    //setMaterial(gis.back(), diffuse, "diffuse_color", white);
+	setMaterial(gis.back(), glass, "diffuse_color", white);
     gis.push_back( createParallelogram( make_float3( 130.0f, 0.0f, 65.0f),
                                         make_float3( 0.0f, 165.0f, 0.0f),
                                         make_float3( 160.0f, 0.0f, 49.0f) ) );
-    setMaterial(gis.back(), diffuse, "diffuse_color", white);
+    //setMaterial(gis.back(), diffuse, "diffuse_color", white);
+	setMaterial(gis.back(), glass, "diffuse_color", white);
     gis.push_back( createParallelogram( make_float3( 82.0f, 0.0f, 225.0f),
                                         make_float3( 0.0f, 165.0f, 0.0f),
                                         make_float3( 48.0f, 0.0f, -160.0f) ) );
-    setMaterial(gis.back(), diffuse, "diffuse_color", white);
+	//setMaterial(gis.back(), diffuse, "diffuse_color", white);
+	setMaterial(gis.back(), glass, "diffuse_color", white);
     gis.push_back( createParallelogram( make_float3( 240.0f, 0.0f, 272.0f),
                                         make_float3( 0.0f, 165.0f, 0.0f),
                                         make_float3( -158.0f, 0.0f, -47.0f) ) );
-    setMaterial(gis.back(), diffuse, "diffuse_color", white);
+    //setMaterial(gis.back(), diffuse, "diffuse_color", white);
+	setMaterial(gis.back(), glass, "diffuse_color", white);
+
 
     // Tall block
     gis.push_back( createParallelogram( make_float3( 423.0f, 330.0f, 247.0f),

@@ -185,7 +185,7 @@ RT_PROGRAM void diffuseEmitter()
 //
 //  Lambertian surface closest-hit
 //
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
 
 rtDeclareVariable(float3,     diffuse_color, , );
 rtDeclareVariable(float3,     geometric_normal, attribute geometric_normal, );
@@ -304,12 +304,7 @@ RT_PROGRAM void miss()
     current_prd.done = true;
 }
 
-
-//Phong surface shading with shadows and reflections
-rtDeclareVariable(float, importance_cutoff, , );
-rtDeclareVariable(int, max_depth, , );
-
-RT_PROGRAM void floor_closest_hit_radiance(){
+RT_PROGRAM void specular_closest_hit_radiance(){
 
     float3 world_geo_normal   = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, geometric_normal ) );
     float3 world_shade_normal = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, shading_normal ) );
@@ -319,20 +314,62 @@ RT_PROGRAM void floor_closest_hit_radiance(){
 
     current_prd.origin = hitpoint;
     current_prd.direction = R;
-    current_prd.countEmitted = false;
-    // PerRayData_pathtrace refl_prd;
-    // refl_prd.attenuation = make_float3(1.f);
-    // refl_prd.countEmitted = true;
-    // refl_prd.done = false;
-    // refl_prd.seed = seed;
-    // refl_prd.depth = current_prd.depth + 1;
+    current_prd.countEmitted = true;
+}
 
-    // optix::Ray refl_ray( hitpoint, R, pathtrace_ray_type, scene_epsilon);
-    // rtTrace(top_object, refl_ray, refl_prd);
-    //
-    // current_prd.radiance = refl_prd.radiance;
-    // current_prd.done = true;
 
-    // current_prd.radiance = bad_color;
-    // current_prd.done = true;
+
+//
+// Dielectric surface shader
+//
+rtDeclareVariable(float3,       cutoff_color, , );
+rtDeclareVariable(float,        fresnel_exponent, , );
+rtDeclareVariable(float,        fresnel_minimum, , );
+rtDeclareVariable(float,        fresnel_maximum, , );
+rtDeclareVariable(float,        refraction_index, , );
+rtDeclareVariable(int,          refraction_maxdepth, , );
+rtDeclareVariable(int,          reflection_maxdepth, , );
+rtDeclareVariable(float3,       refraction_color, , );
+rtDeclareVariable(float3,       reflection_color, , );
+rtDeclareVariable(float3,       extinction_constant, , );
+
+
+RT_PROGRAM void glass_closest_hit_radiance(){
+
+    float3 world_shade_normal = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, shading_normal ) );
+    float3 hitpoint = ray.origin + t_hit * ray.direction;
+    current_prd.origin = hitpoint;
+
+    float reflection = 1.0f;
+    float3 result = make_float3(0.0f);
+
+    float cos_theta = dot(ray.direction, world_shade_normal);
+    bool into = cos_theta < 0.0;
+
+    float3 t;
+    if( refract(t, ray.direction, world_shade_normal, refraction_index) ){
+        //check for external or internal reflections
+        if(cos_theta < 0.0f)//internal
+          cos_theta = -cos_theta;
+        else//external
+          cos_theta = dot(t, world_shade_normal);
+
+        reflection = fresnel_schlick(cos_theta, fresnel_exponent, fresnel_minimum, fresnel_maximum);
+
+        float probability = 0.25 + 0.5 * reflection;
+        if(rnd(current_prd.seed) < probability){
+          float3 R = reflect(ray.direction, world_shade_normal );
+          current_prd.attenuation = current_prd.attenuation * reflection * reflection_color / probability;
+          current_prd.direction = R;
+        }else{
+          current_prd.attenuation = current_prd.attenuation * (1.0f - reflection) * refraction_color / (1.0f - probability);
+          current_prd.direction = t;
+        }
+    }
+    else{ //total reflection
+      float3 R = reflect(ray.direction, world_shade_normal );
+      current_prd.attenuation = current_prd.attenuation * reflection * reflection_color;
+      current_prd.direction = R;
+    }
+    current_prd.countEmitted = true;
 }

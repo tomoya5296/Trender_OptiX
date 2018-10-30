@@ -29,6 +29,12 @@
 #pragma once
 
 #include <optixu/optixu_math_namespace.h>                                        
+using namespace optix;
+
+static __device__ __inline__ float3 exp(const float3& x)
+{
+	return make_float3(exp(x.x), exp(x.y), exp(x.z));
+}
 
 struct ParallelogramLight                                                        
 {                                                                                
