@@ -373,3 +373,84 @@ RT_PROGRAM void glass_closest_hit_radiance(){
     }
     current_prd.countEmitted = true;
 }
+
+
+rtDeclareVariable(float,  alpha, , );
+
+static __device__ __inline__ float lambda_beckman(const float3& wo)
+{
+	float cosThetaO = cosTheta(wo);
+	float sinThetaO = sinTheta(wo);
+	float absTanThetaO = abs(tanTheta(wo));
+	if (isinf(absTanThetaO)) return 0.;
+
+	double alpha_temp = sqrt(cosThetaO * cosThetaO * alpha * alpha +
+		sinThetaO * sinThetaO * alpha * alpha);
+	double a = 1.0 / (alpha_temp * absTanThetaO);
+	return (erf(a) - 1.0) / 2.0 + exp(-a * a) / (2.0 * a * sqrt(M_PIf) + 1.0e-6);
+}
+
+static __device__ __inline__ float G1(const float3& wo)
+{
+	return 1.0 / (1.0 + lambda_beckman(wo));
+}
+
+static __device__ __inline__ float G(const float3& wo, float3& wi)
+{
+	return G1(wo) * G1(wi);
+}
+
+static __device__ __inline__ float weight(const float3& wo, float3& wi, float3& wm)
+{
+  return abs(dot(wi, wm)) * G(wo, wi) /
+                   max(1.0e-8, abs(cosTheta(wi) * cosTheta(wm)));
+}
+
+RT_PROGRAM void ggx_condctor_closest_hit_radiance(){
+
+    float3 world_geo_normal   = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, geometric_normal ) );
+    float3 world_shade_normal = normalize( rtTransformNormal( RT_OBJECT_TO_WORLD, shading_normal ) );
+    float3 ffnormal     = faceforward( world_shade_normal, -ray.direction, world_geo_normal );
+    float3 hitpoint = ray.origin + t_hit * ray.direction;
+    float3 u = make_float3(1.0);
+    float3 w = ffnormal;
+    if(abs(w.x) < 1.0-6){
+      u = make_float3(1.0, 0.0, 0.0);
+    }
+    else{
+      u = cross(w, make_float3(0.0, 1.0, 0.0));
+    }
+    float3 v = cross(u, w);
+    float3 wi = ray.direction;
+    float3 wiLocal = make_float3(dot(u, wi), dot(v, wi), dot(w, wi));
+
+    //Isotropic case
+    //Following smapling formula can be found in [Walter et al. 2007]
+    //"Microfacet Models for Refraction through Rough Surfaces"
+    float z1 = rnd(current_prd.seed);
+    float z2 = rnd(current_prd.seed);
+    float logSample = log(1.0 - z1);
+    float tan2Theta = -alpha * alpha * logSample;
+    float phi = 2.0 * M_PIf * z2;
+
+    float sinPhi = sin(phi);
+    float cosPhi = cos(phi);
+    float alpha2 = alpha * alpha;
+
+    //compute normal direction from above information sampled
+    float cosTheta = 1.0 / sqrt(1.0 + tan2Theta);
+    float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+
+    float3 wmLocal = make_float3(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
+    if (wmLocal.z < 0.0) {
+        wmLocal = -wmLocal;
+    }
+    float3 wm = u * wmLocal.x + v * wmLocal.y + w * wmLocal.z;
+    float3 wo = reflect(wi, wm);
+    float3 woLocal = make_float3(dot(u, wo), dot(v, wo), dot(w, wo));
+
+    current_prd.attenuation = current_prd.attenuation * weight(woLocal, wiLocal, wmLocal);
+    current_prd.origin = hitpoint;
+    current_prd.direction = wo;
+    current_prd.countEmitted = true;
+}

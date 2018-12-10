@@ -31,6 +31,45 @@
 #include <optixu/optixu_math_namespace.h>                                        
 using namespace optix;
 
+static __device__ __inline__ float cosTheta(const float3& w) {
+	return w.z;
+}
+
+static __device__ __inline__ float cos2Theta(const float3& w) {
+	double c = cosTheta(w);
+	return c * c;
+}
+
+static __device__ __inline__ float sinTheta(const float3& w) {
+	return sqrt(max(0.0, 1.0 - cos2Theta(w)));
+}
+
+static __device__ __inline__ float tanTheta(const float3& w) {
+	return sinTheta(w) / cosTheta(w);
+}
+
+static __device__ __inline__ float cosPhi(const float3& w) {
+	if (w.z == 1.0) return 0.0;
+
+	return w.x / sinTheta(w);
+}
+
+static __device__ __inline__ float cos2Phi(const float3& w) {
+	double c = cosPhi(w);
+	return c * c;
+}
+
+static __device__ __inline__ float sinPhi(const float3& w) {
+	if (w.z == 1.0) return 0.0;
+
+	return w.y / sinTheta(w);
+}
+
+static __device__ __inline__ float sin2Phi(const float3& w) {
+	double s = sinPhi(w);
+	return s * s;
+}
+
 static __device__ __inline__ float3 exp(const float3& x)
 {
 	return make_float3(exp(x.x), exp(x.y), exp(x.z));
