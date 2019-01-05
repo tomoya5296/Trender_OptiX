@@ -266,11 +266,17 @@ void loadGeometry()
 	glass["extinction_constant"]->setFloat(log(extinction.x), log(extinction.y), log(extinction.z));
 	//glass["shadow_attenuation"]->setFloat(0.4f, 0.7f, 0.4f);
 
-	Material ggx_conductor = context->createMaterial();
-	Program ggx_conductor_ch = context->createProgramFromPTXString(ptx, "ggx_condctor_closest_hit_radiance");
-	ggx_conductor->setClosestHitProgram(0, ggx_conductor_ch);
-	ggx_conductor->setAnyHitProgram(1, diffuse_ah);
-	ggx_conductor["alpha"]->setFloat(0.1f);
+	Material beckmann_conductor = context->createMaterial();
+	Program beckmann_conductor_ch = context->createProgramFromPTXString(ptx, "beckmann_condctor_closest_hit_radiance");
+	beckmann_conductor->setClosestHitProgram(0, beckmann_conductor_ch);
+	beckmann_conductor->setAnyHitProgram(1, diffuse_ah);
+	beckmann_conductor["alpha"]->setFloat(0.1f);
+
+	Material beckmann_dielectric = context->createMaterial();
+	Program beckmann_dielectric_ch = context->createProgramFromPTXString(ptx, "beckmann_dielectric_closest_hit_radiance");
+	beckmann_dielectric->setClosestHitProgram(0, beckmann_dielectric_ch);
+	beckmann_dielectric->setAnyHitProgram(1, diffuse_ah);
+	beckmann_dielectric["alpha"]->setFloat(0.1f);
 	
     // Set up parallelogram programs
     ptx = sutil::getPtxString( SAMPLE_NAME, "parallelogram.cu" );
@@ -320,27 +326,27 @@ void loadGeometry()
                                         make_float3( -48.0f, 0.0f, 160.0f),
                                         make_float3( 160.0f, 0.0f, 49.0f) ) );
 	//setMaterial(gis.back(), diffuse, "diffuse_color", white);
-	setMaterial(gis.back(), ggx_conductor, "diffuse_color", white);
+	setMaterial(gis.back(), beckmann_dielectric, "diffuse_color", white);
     gis.push_back( createParallelogram( make_float3( 290.0f, 0.0f, 114.0f),
                                         make_float3( 0.0f, 165.0f, 0.0f),
                                         make_float3( -50.0f, 0.0f, 158.0f) ) );
     //setMaterial(gis.back(), diffuse, "diffuse_color", white);
-	setMaterial(gis.back(), ggx_conductor, "diffuse_color", white);
+	setMaterial(gis.back(), beckmann_dielectric, "diffuse_color", white);
     gis.push_back( createParallelogram( make_float3( 130.0f, 0.0f, 65.0f),
                                         make_float3( 0.0f, 165.0f, 0.0f),
                                         make_float3( 160.0f, 0.0f, 49.0f) ) );
     //setMaterial(gis.back(), diffuse, "diffuse_color", white);
-	setMaterial(gis.back(), ggx_conductor, "diffuse_color", white);
+	setMaterial(gis.back(), beckmann_dielectric, "diffuse_color", white);
     gis.push_back( createParallelogram( make_float3( 82.0f, 0.0f, 225.0f),
                                         make_float3( 0.0f, 165.0f, 0.0f),
                                         make_float3( 48.0f, 0.0f, -160.0f) ) );
 	//setMaterial(gis.back(), diffuse, "diffuse_color", white);
-	setMaterial(gis.back(), ggx_conductor, "diffuse_color", white);
+	setMaterial(gis.back(), beckmann_dielectric, "diffuse_color", white);
     gis.push_back( createParallelogram( make_float3( 240.0f, 0.0f, 272.0f),
                                         make_float3( 0.0f, 165.0f, 0.0f),
                                         make_float3( -158.0f, 0.0f, -47.0f) ) );
     //setMaterial(gis.back(), diffuse, "diffuse_color", white);
-	setMaterial(gis.back(), ggx_conductor, "diffuse_color", white);
+	setMaterial(gis.back(), beckmann_dielectric, "diffuse_color", white);
 
 
     // Tall block
