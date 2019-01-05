@@ -277,6 +277,17 @@ void loadGeometry()
 	beckmann_dielectric->setClosestHitProgram(0, beckmann_dielectric_ch);
 	beckmann_dielectric->setAnyHitProgram(1, diffuse_ah);
 	beckmann_dielectric["alpha"]->setFloat(0.1f);
+	beckmann_dielectric["cutoff_color"]->setFloat(0.34f, 0.55f, 0.85f);
+	beckmann_dielectric["fresnel_exponent"]->setFloat(3.0f);
+	beckmann_dielectric["fresnel_minimum"]->setFloat(0.1f);
+	beckmann_dielectric["fresnel_maximum"]->setFloat(1.0f);
+	beckmann_dielectric["refraction_index"]->setFloat(1.4f);
+	beckmann_dielectric["refraction_color"]->setFloat(1.0f, 1.0f, 1.0f);
+	beckmann_dielectric["reflection_color"]->setFloat(1.0f, 1.0f, 1.0f);
+	beckmann_dielectric["refraction_maxdepth"]->setInt(100);
+	beckmann_dielectric["reflection_maxdepth"]->setInt(100);
+	beckmann_dielectric["extinction_constant"]->setFloat(log(extinction.x), log(extinction.y), log(extinction.z));
+
 	
     // Set up parallelogram programs
     ptx = sutil::getPtxString( SAMPLE_NAME, "parallelogram.cu" );

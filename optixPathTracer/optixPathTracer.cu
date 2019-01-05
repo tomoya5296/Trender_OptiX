@@ -344,7 +344,6 @@ RT_PROGRAM void glass_closest_hit_radiance(){
     float3 result = make_float3(0.0f);
 
     float cos_theta = dot(ray.direction, world_shade_normal);
-    bool into = cos_theta < 0.0;
 
     float3 t;
     if( refract(t, ray.direction, world_shade_normal, refraction_index) ){
@@ -476,6 +475,8 @@ RT_PROGRAM void beckmann_dielectric_closest_hit_radiance(){
     //Isotropic case
     //Following smapling formula can be found in [Walter et al. 2007]
     //"Microfacet Models for Refraction through Rough Surfaces"
+
+    //wm sample
     float z1 = rnd(current_prd.seed);
     float z2 = rnd(current_prd.seed);
     float logSample = log(1.0 - z1);
@@ -495,11 +496,47 @@ RT_PROGRAM void beckmann_dielectric_closest_hit_radiance(){
         wmLocal = -wmLocal;
     }
     float3 wm = u * wmLocal.x + v * wmLocal.y + w * wmLocal.z;
-    float3 wo = reflect(wi, wm);
-    float3 woLocal = make_float3(dot(u, wo), dot(v, wo), dot(w, wo));
 
+    //Refract dir and Refract dir begin
+    float reflection = 1.0f;
+    float3 result = make_float3(0.0f);
+
+    float cos_theta = dot(ray.direction, wm);
+
+    float3 t;
+    float3 wo;
+    if( refract(t, ray.direction, wm, refraction_index) ){
+        //check for external or internal reflections
+        if(cos_theta < 0.0f)//internal
+          cos_theta = -cos_theta;
+        else//external
+          cos_theta = dot(t, wm);
+
+        reflection = fresnel_schlick(cos_theta, fresnel_exponent, fresnel_minimum, fresnel_maximum);
+
+        float probability = 0.25 + 0.5 * reflection;
+
+        if(rnd(current_prd.seed) < probability){
+          float3 R = reflect(ray.direction, wm );
+          current_prd.attenuation = current_prd.attenuation * reflection * reflection_color / probability;
+          current_prd.direction = R;
+          wo = R;
+        }else{
+          current_prd.attenuation = current_prd.attenuation * (1.0f - reflection) * refraction_color / (1.0f - probability);
+          current_prd.direction = t;
+          wo = t;
+        }
+    }
+    else{ //total reflection
+      float3 R = reflect(ray.direction, wm );
+      current_prd.attenuation = current_prd.attenuation * reflection * reflection_color;
+      current_prd.direction = R;
+      wo = R;
+    }
+
+    float3 woLocal = make_float3(dot(u, wo), dot(v, wo), dot(w, wo));
     current_prd.attenuation = current_prd.attenuation * weight(woLocal, wiLocal, wmLocal);
-    current_prd.origin = hitpoint;
-    current_prd.direction = wo;
     current_prd.countEmitted = true;
+    //Refract dir and Refract dir end
+    current_prd.origin = hitpoint;
 }
